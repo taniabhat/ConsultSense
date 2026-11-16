@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ConsultSense</title>
+<style>
+:root{--bg:#f6f5f1;--surface:#fff;--ink:#1c2430;--muted:#5d6675;--line:#d9d9d2;--accent:#23407a;
+--pos:#0f766e;--neg:#b42318;--neu:#6b7280;--posbg:#dff3ef;--negbg:#fbe4e1;--neubg:#ecedf0;--flag:#b7791f}
+@media (prefers-color-scheme:dark){:root{--bg:#14181f;--surface:#1c222c;--ink:#e8eaee;--muted:#9aa3b2;--line:#2f3744;--accent:#8fb0f0;
+--pos:#4fd1c0;--neg:#ff8a7d;--neu:#9aa3b2;--posbg:#173a36;--negbg:#40201d;--neubg:#272d38;--flag:#e8b04a}}
+*{box-sizing:border-box}
+html{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0)}
+h1,h2,h3{font-family:Georgia,"Times New Roman",serif;font-weight:700;letter-spacing:-.01em;margin:0}
+header{max-width:1100px;margin:0 auto;padding:28px 20px 8px}
+header h1{font-size:2rem}
+header p{margin:4px 0 0;color:var(--muted);max-width:60ch}
+nav{max-width:1100px;margin:16px auto 0;padding:0 20px;display:flex;gap:4px;border-bottom:1px solid var(--line)}
+nav button{background:none;border:0;border-bottom:3px solid transparent;padding:10px 14px;font:inherit;color:var(--muted);cursor:pointer}
+nav button[aria-selected=true]{color:var(--ink);border-bottom-color:var(--accent);font-weight:600}
+main{max-width:1100px;margin:0 auto;padding:20px}
+.grid{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:24px;align-items:start}
+@media(max-width:820px){.grid{grid-template-columns:1fr}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px}
+label{display:block;font-weight:600;margin:0 0 6px}
+input[type=text],textarea{width:100%;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:9px 10px}
+textarea{min-height:220px;resize:vertical}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center}
+button.primary{background:var(--accent);color:#fff;border:0;border-radius:6px;padding:10px 16px;font:inherit;font-weight:600;cursor:pointer}
+@media (prefers-color-scheme:dark){button.primary{color:#14181f}}
+button.ghost{background:none;border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:8px 12px;font:inherit;cursor:pointer}
+button:disabled{opacity:.55;cursor:wait}
+.hint{color:var(--muted);font-size:.875rem;margin-top:8px}
+.err{background:var(--negbg);color:var(--neg);border-radius:6px;padding:10px 12px;margin-top:12px}
+.empty{color:var(--muted);padding:40px 10px;text-align:center}
+.stats{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0}
+.stat{flex:1 1 120px;border-radius:8px;padding:10px 12px}
+.stat b{display:block;font:700 1.7rem Georgia,serif}
+.stat.pos{background:var(--posbg);color:var(--pos)}.stat.neg{background:var(--negbg);color:var(--neg)}
+.stat.neu{background:var(--neubg);color:var(--neu)}.stat.flag{border:2px dashed var(--flag);color:var(--flag)}
+.ribbon{display:flex;gap:2px;height:34px;margin:6px 0 4px}
+.ribbon button{flex:1;min-width:3px;border:0;padding:0;cursor:pointer;border-radius:2px}
+.ribbon .positive{background:var(--pos)}.ribbon .negative{background:var(--neg)}.ribbon .neutral,.ribbon .unparsed{background:var(--neu)}
+.ribbon .rev{box-shadow:0 0 0 2px var(--flag) inset;background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.45) 0 3px,transparent 3px 6px)}
+.themes{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:16px 0}
+.themes h3{font-size:1rem;margin-bottom:4px}
+.themes ul{margin:0;padding-left:18px;color:var(--ink)}
+.headline{font:italic 1.1rem/1.4 Georgia,serif;margin:10px 0}
+table{width:100%;border-collapse:collapse;font-size:.92rem}
+th,td{text-align:left;padding:8px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-weight:600;color:var(--muted)}
+tr.rev td:first-child{box-shadow:inset 3px 0 0 var(--flag)}
+tr.hit{background:var(--neubg)}
+.badge{display:inline-block;border-radius:999px;padding:1px 9px;font-size:.82rem;font-weight:600;white-space:nowrap}
+.badge.positive{background:var(--posbg);color:var(--pos)}.badge.negative{background:var(--negbg);color:var(--neg)}
+.badge.neutral,.badge.unparsed{background:var(--neubg);color:var(--neu)}
+.scroll{overflow-x:auto}
+.tbar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:16px 0 6px}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:s .8s linear infinite;vertical-align:-2px;margin-right:6px}
+@keyframes s{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin{animation:none}}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<header>
+  <h1>ConsultSense</h1>
+  <p>Read public comments on a policy at scale. Two prompting methods classify every comment; where they disagree, a person should take a look.</p>
+</header>
+<nav role="tablist">
+  <button role="tab" id="t1" aria-selected="true" aria-controls="p1">Analyse comments</button>
+  <button role="tab" id="t2" aria-selected="false" aria-controls="p2">Benchmark results</button>
+</nav>
+<main>
+<section id="p1" role="tabpanel" aria-labelledby="t1">
+  <div class="grid">
+    <div class="panel">
+      <label for="policy">Policy under consultation</label>
+      <input type="text" id="policy" value="Draft National Data Protection Rules">
+      <label for="comments" style="margin-top:14px">Comments (one per line)</label>
+      <textarea id="comments" placeholder="Paste comments here, or upload a CSV."></textarea>
+      <div class="row">
+        <button class="primary" id="go">Analyse comments</button>
+        <button class="ghost" id="sample">Use sample comments</button>
+        <button class="ghost" id="pick">Upload CSV</button>
+        <input type="file" id="file" accept=".csv,.txt" hidden>
+      </div>
+      <p class="hint" id="count">0 comments. Up to 60 per run.</p>
+      <div class="err" id="err" role="alert" hidden></div>
+    </div>
+    <div>
+      <div class="empty panel" id="empty">Results appear here. Paste comments or load the samples to start.</div>
+      <div class="panel" id="out" hidden>
+        <h2 id="otitle"></h2>
+        <div class="stats" id="stats"></div>
+        <div class="hint">Each bar is one comment, in the order you entered them. Hatched bars need review. Select a bar to jump to its row.</div>
+        <div class="ribbon" id="ribbon" aria-label="Sentiment of each comment"></div>
+        <div id="themes"></div>
+        <div class="tbar">
+          <label style="font-weight:400;margin:0"><input type="checkbox" id="onlyrev"> Show only comments needing review</label>
+          <button class="ghost" id="dl">Download CSV</button>
+        </div>
+        <div class="scroll"><table><thead><tr><th>Comment</th><th>Zero-shot</th><th>Few-shot</th></tr></thead><tbody id="rows"></tbody></table></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="p2" role="tabpanel" aria-labelledby="t2" hidden>
+  <div class="panel" id="bench"><div class="empty">Loading…</div></div>
+</section>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const SAMPLE = [
+"Great move on the new subsidy, small farmers needed this.",
+"Another committee. That will surely fix everything.",
+"Where can I read the full draft?",
+"The data clause is not bad, but enforcement is vague.",
+"Thank you for extending the deadline, very helpful.",
+"This rule will destroy small businesses and nobody asked us.",
+"I support stronger penalties for data leaks, finally.",
+"Public hearings sound nice, but will anyone actually listen?",
+"The compliance cost for startups is too high.",
+"Clear, simple and long overdue. Well done."];
+let data = null;
+
+function el(tag, cls, text){ const e = document.createElement(tag); if(cls) e.className = cls; if(text!==undefined) e.textContent = text; return e; }
+function badge(l){ return el("span", "badge " + l, l); }
+function lines(){ return $("comments").value.split("\n").map(s => s.trim()).filter(Boolean); }
+function updateCount(){ const n = lines().length; $("count").textContent = n + (n === 1 ? " comment" : " comments") + ". Up to 60 per run."; }
+$("comments").addEventListener("input", updateCount);
+$("sample").onclick = () => { $("comments").value = SAMPLE.join("\n"); updateCount(); };
+$("pick").onclick = () => $("file").click();
+
+function parseCSV(t){ // small RFC-4180 style parser
+  const rows = []; let r = [], f = "", q = false;
+  for (let i = 0; i < t.length; i++){ const c = t[i];
+    if (q){ if (c === '"'){ if (t[i+1] === '"'){ f += '"'; i++; } else q = false; } else f += c; }
+    else if (c === '"') q = true;
+    else if (c === ","){ r.push(f); f = ""; }
+    else if (c === "\n"){ r.push(f); rows.push(r); r = []; f = ""; }
+    else if (c !== "\r") f += c; }
+  if (f || r.length){ r.push(f); rows.push(r); } return rows; }
+$("file").onchange = async e => {
+  const file = e.target.files[0]; if (!file) return;
+  const text = await file.text(); let out;
+  if (file.name.toLowerCase().endsWith(".csv")){
+    const rows = parseCSV(text).filter(r => r.some(c => c.trim()));
+    const head = (rows[0] || []).map(h => h.trim().toLowerCase());
+    let idx = head.findIndex(h => ["text","comment","comments","feedback"].includes(h));
+    const hasHeader = idx >= 0; if (idx < 0) idx = 0;
+    out = rows.slice(hasHeader ? 1 : 0).map(r => (r[idx] || "").replace(/\s+/g, " ").trim());
+  } else out = text.split("\n");
+  $("comments").value = out.filter(Boolean).join("\n"); updateCount(); e.target.value = "";
+};
+
+function showErr(m){ $("err").textContent = m; $("err").hidden = !m; }
+$("go").onclick = async () => {
+  showErr(""); const comments = lines();
+  if (!comments.length) return showErr("Add at least one comment first.");
+  $("go").disabled = true; $("go").textContent = ""; const sp = el("span", "spin"); $("go").append(sp, "Analysing…");
+  try {
+    const r = await fetch("/api/analyze", {method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({policy: $("policy").value, comments})});
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.detail || "Something went wrong. Try again.");
+    data = j; render();
+  } catch (e) { showErr(e.message); }
+  finally { $("go").disabled = false; $("go").textContent = "Analyse comments"; }
+};
+
+function stat(cls, n, label){ const d = el("div", "stat " + cls); d.append(el("b", "", n), label); return d; }
+function list(title, items){
+  const d = el("div"); d.append(el("h3", "", title)); const ul = el("ul");
+  (items && items.length ? items : ["Nothing notable"]).forEach(x => ul.append(el("li", "", x))); d.append(ul); return d; }
+
+function render(){
+  $("empty").hidden = true; $("out").hidden = false;
+  $("otitle").textContent = (data.policy || "Consultation") + " — " + data.total + " comments";
+  const c = data.counts, pct = n => Math.round(100 * n / data.total) + "%";
+  const s = $("stats"); s.replaceChildren(
+    stat("pos", pct(c.positive), "positive (" + c.positive + ")"), stat("neg", pct(c.negative), "negative (" + c.negative + ")"),
+    stat("neu", pct(c.neutral), "neutral (" + c.neutral + ")"), stat("flag", data.needs_review, "need review"));
+  const rb = $("ribbon"); rb.replaceChildren();
+  data.rows.forEach((r, i) => { const b = el("button", r.sentiment + (r.needs_review ? " rev" : ""));
+    b.title = (i+1) + ". " + r.sentiment + (r.needs_review ? " (review)" : "") + ": " + r.comment.slice(0, 80);
+    b.setAttribute("aria-label", b.title); b.onclick = () => jump(i); rb.append(b); });
+  const th = $("themes"); th.replaceChildren();
+  if (data.themes && data.themes.headline){
+    th.append(el("p", "headline", data.themes.headline));
+    const g = el("div", "themes"); g.append(list("Supportive of", data.themes.supportive), list("Concerned about", data.themes.concerns), list("Asking", data.themes.questions));
+    th.append(g); }
+  renderRows();
+}
+function renderRows(){
+  const only = $("onlyrev").checked, tb = $("rows"); tb.replaceChildren();
+  data.rows.forEach((r, i) => { if (only && !r.needs_review) return;
+    const tr = el("tr", r.needs_review ? "rev" : ""); tr.id = "r" + i;
+    tr.append(el("td", "", r.comment)); const a = el("td"); a.append(badge(r.zero_shot)); const b = el("td"); b.append(badge(r.few_shot));
+    tr.append(a, b); tb.append(tr); });
+}
+$("onlyrev").onchange = () => data && renderRows();
+function jump(i){ if ($("onlyrev").checked){ $("onlyrev").checked = false; renderRows(); }
+  const tr = $("r" + i); if (!tr) return; tr.scrollIntoView({block: "center", behavior: "auto"});
+  tr.classList.add("hit"); setTimeout(() => tr.classList.remove("hit"), 1600); }
+$("dl").onclick = () => {
+  const q = v => '"' + String(v).replace(/"/g, '""') + '"';
+  const csv = ["comment,zero_shot,few_shot,needs_review"].concat(data.rows.map(r => [q(r.comment), r.zero_shot, r.few_shot, r.needs_review].join(","))).join("\n");
+  const a = el("a"); a.href = URL.createObjectURL(new Blob([csv], {type: "text/csv"})); a.download = "consultsense_results.csv"; a.click(); };
+
+// tabs
+let benchLoaded = false;
+function tab(n){ [1,2].forEach(i => { $("t"+i).setAttribute("aria-selected", i === n); $("p"+i).hidden = i !== n; });
+  if (n === 2 && !benchLoaded) loadBench(); }
+$("t1").onclick = () => tab(1); $("t2").onclick = () => tab(2);
+
+async function loadBench(){
+  const box = $("bench");
+  try {
+    const r = await fetch("/api/benchmark"); const j = await r.json();
+    if (!r.ok) throw new Error(j.detail || "No results yet."); benchLoaded = true;
+    box.replaceChildren(); const m = j.metrics;
+    const pc = v => (v * 100).toFixed(1) + "%";
+    box.append(el("h2", "", "Zero-shot vs few-shot"), el("p", "hint", "Model: " + j.model + ". " + j.n + " balanced Sentiment140 comments, " + j.shots.length + " examples in the few-shot prompt."));
+    const t = el("table"); const hd = el("tr"); ["Method","Accuracy","95% CI","Macro-F1"].forEach(h => hd.append(el("th", "", h))); t.append(hd);
+    for (const k of ["zero-shot","few-shot"]){ const tr = el("tr"); [k, pc(m[k].accuracy), pc(m[k].ci95[0]) + " to " + pc(m[k].ci95[1]), m[k].macro_f1.toFixed(3)].forEach(v => tr.append(el("td", "", v))); t.append(tr); }
+    const w = el("div", "scroll"); w.append(t); box.append(w);
+    const d = j.delta_accuracy * 100, sig = j.mcnemar_p < 0.05;
+    box.append(el("p", "headline", d === 0 ? "The two methods tie." : (d > 0 ? "Few-shot" : "Zero-shot") + " is ahead by " + Math.abs(d).toFixed(1) + " points" + (sig ? "." : ", but the gap is not statistically significant.")),
+      el("p", "hint", "Gain in accuracy: 95% CI " + (j.delta_ci95[0]*100).toFixed(1) + " to " + (j.delta_ci95[1]*100).toFixed(1) + " points. McNemar exact p = " + j.mcnemar_p.toFixed(3) + "."));
+    box.append(el("h2", "", "Example misclassifications")); box.lastChild.style.margin = "20px 0 8px";
+    const e = el("table"); const eh = el("tr"); ["Comment","Gold","Zero","Few","Case","Why"].forEach(h => eh.append(el("th", "", h))); e.append(eh);
+    j.errors.forEach(x => { const tr = el("tr"); tr.append(el("td", "", x.text));
+      [x.gold, x.zero, x.few].forEach(l => { const td = el("td"); td.append(badge(l)); tr.append(td); });
+      tr.append(el("td", "", x.kind)); tr.append(el("td", "", x.category + ": " + x.explanation)); e.append(tr); });
+    const w2 = el("div", "scroll"); w2.append(e); box.append(w2);
+  } catch (err){ box.replaceChildren(el("div", "empty", err.message)); }
+}
+updateCount();
+</script>
+</body>
+</html>
